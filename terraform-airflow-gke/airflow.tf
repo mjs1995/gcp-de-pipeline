@@ -7,10 +7,32 @@ provider "kubernetes" {
 }
 
 resource "kubernetes_namespace" "airflow" {
-  depends_on = [google_container_cluster.primary]
   metadata {
     name = "airflow"
   }
+  depends_on = [google_container_cluster.primary]
+}
+
+resource "random_string" "webserver_secret_key" {
+  length  = 32
+  special = false
+  upper   = false
+  numeric = false
+}
+
+resource "kubernetes_secret" "webserver_secret" {
+  metadata {
+    name      = "my-webserver-secret"
+    namespace = kubernetes_namespace.airflow.metadata[0].name
+  }
+
+  data = {
+    "webserver-secret-key" = "${random_string.webserver_secret_key.result}"
+  }
+
+  depends_on = [
+    kubernetes_namespace.airflow
+  ]
 }
 
 provider "helm" {
@@ -28,10 +50,19 @@ resource "helm_release" "airflow" {
   repository = "https://airflow-helm.github.io/charts"
   chart      = "airflow"
   namespace  = kubernetes_namespace.airflow.metadata[0].name
+  timeout    = 600
 
   set {
     name  = "webserverSecretKeySecretName"
     value = "my-webserver-secret"
   }
 
+  set {
+    name  = "dags.folder"
+    value = "gs://gke_gcs_bucket/airflow/"
+  }
+
+  depends_on = [
+    kubernetes_secret.webserver_secret
+  ]
 }
