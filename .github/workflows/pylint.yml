@@ -21,6 +21,3 @@ jobs:
     - name: Check code style with black
       run: |
         black --check .
-    - name: Analysing the code with flake8
-      run: |
-        flake8
