@@ -1,30 +1,23 @@
-from datetime import datetime, timedelta
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.utils.dates import days_ago
 
-
-def print_hello():
-    print("Hello, Airflow!")
-
-
-default_args = {
-    "owner": "airflow",
-    "depends_on_past": False,
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
-}
+from datetime import datetime, timedelta
+import requests
+import logging
+import json
 
 dag = DAG(
-    "hello_airflow",
-    description="Simple tutorial DAG",
-    schedule_interval=timedelta(days=1),
-    start_date=datetime(2023, 10, 17),
+    dag_id="slack_test",
+    start_date=days_ago(1),
+    max_active_runs=1,
     catchup=False,
-    default_args=default_args,
+    schedule_interval="@once",
 )
 
-t1 = PythonOperator(task_id="print_hello", python_callable=print_hello, dag=dag)
+send_slack_message = SlackWebhookOperator(
+    task_id="send_slack", http_conn_id="slack_webhook", message="Hello slack", dag=dag
+)
 
-t1
+send_slack_message

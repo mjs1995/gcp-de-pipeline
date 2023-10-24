@@ -1,28 +1,66 @@
-from airflow.models.dag import DAG
-from airflow.operators.bash import BashOperator
-from airflow.operators.dummy import DummyOperator
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from airflow.utils.dates import days_ago
-from airflow.utils.task_group import TaskGroup
-from airflow.operators.python_operator import PythonOperator
+
+from datetime import datetime
 
 
-def print_hello():
-    print("hello")
+def simple_python_task(**kwargs):
+    logging.info("Executing Python Task!")
+    return "Python Task executed successfully!"
 
 
-with DAG(dag_id="taskgroup_example", start_date=days_ago(1)) as dag:
-    start = DummyOperator(task_id="start")
+dag = DAG(
+    dag_id="slack_test",
+    start_date=days_ago(1),
+    max_active_runs=1,
+    catchup=False,
+    schedule_interval="@once",
+)
 
-    with TaskGroup("taskgroup_1", tooltip="task group #1") as section_1:
-        task_1 = PythonOperator(task_id="print-hello", python_callable=print_hello)
-        task_2 = BashOperator(task_id="op-2", bash_command=":")
+# Simple Python Operator
+python_task = PythonOperator(
+    task_id="simple_python_task",
+    python_callable=simple_python_task,
+    provide_context=True,
+    dag=dag,
+)
 
-    with TaskGroup("taskgroup_2", tooltip="task group #2") as section_2:
-        task_3 = BashOperator(task_id="op-3", bash_command=":")
-        task_4 = BashOperator(task_id="op-4", bash_command=":")
+# Slack Message with rich content
+slack_message_payload = {
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "Hello, this is a *rich* slack message!",
+            },
+        },
+        {
+            "type": "image",
+            "image_url": "https://github.com/mjs1995/diagrams/blob/2f26dbed7c63ee7a2f7817c9d00629cc89b96922/website/static/img/resources/onprem/analytics/pymy.png",
+            "alt_text": "Example Image",
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "button",
+                    "text": {"type": "plain_text", "text": "Click Me"},
+                    "value": "button_click",
+                }
+            ],
+        },
+    ]
+}
 
-    some_other_task = DummyOperator(task_id="some-other-task")
+send_rich_slack_message = SlackWebhookOperator(
+    task_id="send_rich_slack_message",
+    http_conn_id="slack_webhook",
+    message=slack_message_payload,
+    dag=dag,
+)
 
-    end = DummyOperator(task_id="end")
-
-    start >> section_1 >> some_other_task >> section_2 >> end
+# Setting up the task order
+python_task >> send_rich_slack_message
