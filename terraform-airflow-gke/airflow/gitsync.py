@@ -17,7 +17,7 @@ dag = DAG(
 )
 
 send_slack_message = SlackWebhookOperator(
-    task_id="send_slack", http_conn_id="slack_webhook", message="Hello slack", dag=dag
+    task_id="send_slack", slack_webhook_conn_id="slack_webhook", message="Hello slack", dag=dag
 )
 
 send_slack_message
