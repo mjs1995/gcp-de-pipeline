@@ -1,8 +1,8 @@
+import logging
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from airflow.utils.dates import days_ago
-
 from datetime import datetime
 
 
@@ -19,7 +19,6 @@ dag = DAG(
     schedule_interval="@once",
 )
 
-# Simple Python Operator
 python_task = PythonOperator(
     task_id="simple_python_task",
     python_callable=simple_python_task,
@@ -27,7 +26,6 @@ python_task = PythonOperator(
     dag=dag,
 )
 
-# Slack Message with rich content
 slack_message_payload = {
     "blocks": [
         {
@@ -57,10 +55,9 @@ slack_message_payload = {
 
 send_rich_slack_message = SlackWebhookOperator(
     task_id="send_rich_slack_message",
-    http_conn_id="slack_webhook",
+    slack_webhook_conn_id="slack_webhook",
     message=slack_message_payload,
     dag=dag,
 )
 
-# Setting up the task order
 python_task >> send_rich_slack_message
