@@ -14,7 +14,7 @@
   </property>
   <property>
     <name>javax.jdo.option.ConnectionURL</name>
-    <value>jdbc:mysql://mysql.mysql.svc.cluster.local:3306/test?useSSL=false</value>
+    <value>jdbc:mysql://mysql.mysql.svc.cluster.local:3306/test?createdatabaseifnotexist=true&amp;useSSL=false</value>
   </property>
   <property>
     <name>javax.jdo.option.ConnectionDriverName</name>
