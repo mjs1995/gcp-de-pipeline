@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metastore
+  namespace: hive
+spec:
+  selector:
+    matchLabels:
+      app: metastore
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: metastore
+    spec:
+      containers:
+      - name: metastore
+        image: gcr.io/ggke-401900/hive-metastore
+        ports:
+        - containerPort: 9083
+        volumeMounts:
+        - name: metastore-cfg-vol
+          mountPath: /opt/hive-metastore/conf/metastore-site.xml
+          subPath: metastore.xml
+        command: ["/opt/hive-metastore/bin/start-metastore"]
+        args: ["-p", "9083"]
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+        imagePullPolicy: Always
+      volumes:
+      - name: metastore-cfg-vol
+        configMap:
+          name: metastore-cfg
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metastore
+  namespace: hive
+spec:
+  ports:
+  - port: 9083
+    targetPort: 9083
+  selector:
+    app: metastore
